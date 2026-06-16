@@ -914,7 +914,8 @@ function showResult(){
   const url = location.href.split('#')[0];
   document.getElementById('share-x').onclick = ()=>{
     const u = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
-    window.open(u,'_blank','noopener');
+    // window.open はモバイルでポップアップブロックされやすいので location 遷移にする
+    location.href = u;
   };
   document.getElementById('copy-btn').onclick = ()=>{
     navigator.clipboard?.writeText(shareText + "\n" + url).then(()=>{
