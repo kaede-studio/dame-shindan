@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ダメ人間タイプ診断</title>
+<style>
+  :root{
+    --bg:#2E2A33;
+    --card:#3A353F;
+    --card2:#423C49;
+    --line:#4A444F;
+    --ink:#EDE6F0;
+    --ink-dim:#A89DB0;
+    --ink-faint:#8F8199;
+    --accent:#C99BD4;        /* くすみ紫ポップ */
+    --accent2:#E8A0B8;       /* くすみピンク */
+    --yes:#8FB89A;           /* くすみグリーン */
+    --no:#C99090;            /* くすみレッド */
+    --shadow:0 16px 40px rgba(0,0,0,0.35);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; background:var(--bg); }
+  body{
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    color:var(--ink);
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    line-height:1.7;
+  }
+  .app{
+    width:100%; max-width:440px;
+  }
+  .screen{ display:none; animation:fade .35s ease; }
+  .screen.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  /* ===== Intro ===== */
+  .intro-card{
+    background:var(--card); border:1.5px solid var(--line); border-radius:28px;
+    padding:40px 30px 34px; text-align:center; box-shadow:var(--shadow);
+  }
+  .intro-emoji{ font-size:14px; letter-spacing:0.3em; color:var(--accent); font-weight:800; margin-bottom:18px; }
+  .intro-title{
+    font-size:30px; font-weight:900; letter-spacing:0.02em; margin:0 0 6px;
+    background:linear-gradient(120deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .intro-sub{ font-size:14px; color:var(--ink-dim); margin:0 0 26px; }
+  .intro-desc{
+    font-size:13.5px; color:var(--ink-dim); background:var(--card2);
+    border-radius:16px; padding:16px 18px; margin-bottom:28px; text-align:left;
+  }
+  .intro-desc b{ color:var(--ink); font-weight:700; }
+  .btn{
+    border:none; border-radius:999px; font-family:inherit; cursor:pointer;
+    font-weight:800; transition:transform .08s ease, filter .15s ease;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{
+    background:linear-gradient(120deg,var(--accent),var(--accent2));
+    color:#3A2E40; font-size:17px; padding:16px 40px; width:100%;
+    box-shadow:0 8px 20px rgba(201,155,212,0.3);
+  }
+  .intro-meta{ font-size:11.5px; color:var(--ink-faint); margin-top:16px; }
+
+  /* ===== Quiz ===== */
+  .quiz-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding:0 4px; }
+  .q-count{ font-weight:800; color:var(--accent); font-size:15px; }
+  .q-count .total{ color:var(--ink-faint); font-size:12px; margin-left:3px; }
+  .progress{ height:7px; background:var(--card); border-radius:999px; overflow:hidden; margin-bottom:26px; border:1px solid var(--line); }
+  .progress-fill{ height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .35s ease; }
+  .q-card{
+    background:var(--card); border:1.5px solid var(--line); border-radius:24px;
+    padding:38px 26px; min-height:170px; display:flex; align-items:center; justify-content:center;
+    text-align:center; box-shadow:var(--shadow); margin-bottom:24px;
+  }
+  .q-text{ font-size:20px; font-weight:700; line-height:1.6; }
+  .yn{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .btn-yn{
+    padding:20px 0; font-size:18px; font-weight:800; border-radius:18px; color:#2E2A33;
+  }
+  .btn-yes{ background:var(--yes); box-shadow:0 6px 16px rgba(143,184,154,0.25); }
+  .btn-no{ background:var(--no); box-shadow:0 6px 16px rgba(201,144,144,0.25); }
+  .btn-yn .sub{ display:block; font-size:11px; font-weight:700; opacity:0.7; margin-top:2px; }
+  .quiz-foot{ text-align:center; margin-top:18px; }
+  .btn-back{ background:none; color:var(--ink-faint); font-size:13px; padding:8px 16px; border:none; cursor:pointer; font-family:inherit; }
+  .btn-back:hover{ color:var(--ink-dim); }
+
+  /* ===== Result ===== */
+  #result{ max-height:100%; }
+  .result-card{
+    background:var(--card); border:1.5px solid var(--line); border-radius:28px;
+    padding:32px 26px 30px; box-shadow:var(--shadow); text-align:center;
+  }
+  .result-tag{ font-size:11px; letter-spacing:0.25em; color:var(--accent); font-weight:800; margin-bottom:16px; }
+  .result-icon{ width:160px; height:160px; margin:0 auto 6px; }
+  .result-icon svg{ width:100%; height:100%; }
+  .result-axes{ font-size:12px; color:var(--ink-faint); font-weight:700; letter-spacing:0.04em; margin-bottom:4px; }
+  .result-name{ font-size:26px; font-weight:900; margin:0 0 16px; color:var(--ink); }
+  .result-lead{
+    font-size:14px; color:var(--ink-dim); background:var(--card2); border-radius:16px;
+    padding:16px 18px; margin:0 0 20px; text-align:left; line-height:1.75;
+  }
+  .result-items{ list-style:none; padding:0; margin:0 0 22px; text-align:left; }
+  .result-items li{
+    font-size:13.5px; color:var(--ink); padding:11px 14px 11px 38px; position:relative;
+    background:var(--card2); border-radius:12px; margin-bottom:8px; line-height:1.6;
+  }
+  .result-items li::before{
+    content:"✗"; position:absolute; left:14px; top:11px; color:var(--no); font-weight:800;
+  }
+  .result-save{
+    font-size:14px; color:var(--ink); line-height:1.7; text-align:left;
+    background:linear-gradient(120deg, rgba(201,155,212,0.16), rgba(232,160,184,0.16));
+    border:1px solid rgba(201,155,212,0.3); border-radius:16px; padding:16px 18px; margin-bottom:26px;
+  }
+  .save-label{ display:block; font-size:11px; font-weight:800; color:var(--accent); letter-spacing:0.1em; margin-bottom:5px; }
+  .share-row{ display:flex; gap:12px; margin-bottom:14px; }
+  .btn-share{ flex:1; padding:15px 0; font-size:15px; font-weight:800; border-radius:16px; }
+  .btn-x{ background:#1d1d1f; color:#fff; }
+  .btn-copy{ background:var(--card2); color:var(--ink); border:1px solid var(--line); }
+  .btn-retry{ width:100%; background:none; color:var(--ink-faint); font-size:13.5px; padding:12px; border:none; cursor:pointer; font-family:inherit; }
+  .btn-retry:hover{ color:var(--ink-dim); }
+  .result-footer{ text-align:center; font-size:11px; color:var(--ink-faint); margin-top:18px; opacity:0.7; }
+</style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- INTRO -->
+    <section id="intro" class="screen active">
+      <div class="intro-card">
+        <div class="intro-emoji">◍ ◍ ◍</div>
+        <h1 class="intro-title">ダメ人間タイプ診断</h1>
+        <p class="intro-sub">あなたのダメさは、どのタイプ？</p>
+        <div class="intro-desc">
+          お金と時間にまつわる<b>16タイプ</b>のうち、あなたがどれかを診断します。<br>
+          12個の質問に<b>YES / NO</b>で答えるだけ。所要時間は<b>約1分</b>。
+        </div>
+        <button id="start-btn" class="btn btn-primary">診断をはじめる</button>
+        <div class="intro-meta">※ 結果はあくまでエンタメです。当たっても泣かない</div>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="quiz" class="screen">
+      <div class="quiz-head">
+        <div class="q-count"><span id="q-num">Q1</span><span class="total" id="q-total">/ 12</span></div>
+      </div>
+      <div class="progress"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="q-card"><div id="q-text" class="q-text"></div></div>
+      <div class="yn">
+        <button id="yes-btn" class="btn btn-yn btn-yes">YES<span class="sub">あてはまる</span></button>
+        <button id="no-btn" class="btn btn-yn btn-no">NO<span class="sub">あてはまらない</span></button>
+      </div>
+      <div class="quiz-foot">
+        <button id="back-btn" class="btn-back">← 前の質問にもどる</button>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section id="result" class="screen">
+      <div class="result-card">
+        <div class="result-tag">診断結果</div>
+        <div id="result-body"></div>
+        <div class="share-row">
+          <button id="share-x" class="btn btn-share btn-x">Xでシェア</button>
+          <button id="copy-btn" class="btn btn-share btn-copy">結果をコピー</button>
+        </div>
+        <button id="retry-btn" class="btn-retry">もう一度診断する</button>
+      </div>
+      <div class="result-footer">ダメ人間タイプ診断</div>
+    </section>
+
+  </div>
+
+<script>
+// ダメ人間診断 16タイプ アイコン生成モジュール
+// 各関数は 200x200 viewBox の SVG文字列を返す
+// 共通: くすみカラー。金グループ=紫赤系背景 / 時間グループ=青緑系背景
+
+// ---- 共通パーツ ----
+function bg(color, ring) {
+  return `<circle cx="100" cy="100" r="92" fill="${color}"/>`;
+}
+function ring(color) {
+  return `<circle cx="100" cy="100" r="92" stroke="${color}" stroke-width="3" fill="none"/>`;
+}
+// 顔ベース（cx,cy,表情パーツを差し込む）
+function head(cx, cy, hair) {
+  return `
+    <ellipse cx="${cx}" cy="${cy}" rx="44" ry="42" fill="#E3C3A2"/>
+    <ellipse cx="${cx}" cy="${cy}" rx="44" ry="42" stroke="#C9A580" stroke-width="2.5"/>
+    ${hair}`;
+}
+
+// 各タイプ。key = 4文字コード
+const ICONS = {
+
+// ===== 金グループ（紫〜赤紫系背景）=====
+
+// 楽天的散財モンスター：紙幣とショッピング袋、満面の笑み
+"UMIB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#A98BA8"/>
+  <clipPath id="c_UMIB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UMIB)">
+    <g opacity="0.16" stroke="#3A2E40" stroke-width="2" fill="none">
+      <text x="30" y="50" font-size="22" fill="#3A2E40" stroke="none" opacity="0.5">¥</text>
+      <text x="150" y="44" font-size="20" fill="#3A2E40" stroke="none" opacity="0.5">¥</text>
+      <text x="160" y="170" font-size="22" fill="#3A2E40" stroke="none" opacity="0.5">¥</text>
+    </g>
+    <!-- 舞う紙幣 -->
+    <g transform="rotate(-18 44 130)"><rect x="22" y="118" width="44" height="26" rx="3" fill="#A7C8A0" stroke="#7FA678" stroke-width="2"/><circle cx="44" cy="131" r="6" fill="none" stroke="#7FA678" stroke-width="1.5"/></g>
+    <g transform="rotate(16 156 126)"><rect x="134" y="114" width="44" height="26" rx="3" fill="#A7C8A0" stroke="#7FA678" stroke-width="2"/><circle cx="156" cy="127" r="6" fill="none" stroke="#7FA678" stroke-width="1.5"/></g>
+    <ellipse cx="100" cy="86" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="86" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 74 Q64 42 100 42 Q136 42 144 74 Q138 56 100 54 Q62 56 56 74 Z" fill="#6B4A2C"/>
+    <!-- ニコニコ目（への字逆＝笑い目） -->
+    <path d="M74 84 Q82 76 90 84" stroke="#3A2E26" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M110 84 Q118 76 126 84" stroke="#3A2E26" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <!-- 頬染め -->
+    <ellipse cx="72" cy="98" rx="8" ry="5" fill="#E89B92" opacity="0.6"/>
+    <ellipse cx="128" cy="98" rx="8" ry="5" fill="#E89B92" opacity="0.6"/>
+    <!-- 大きい口開け笑い -->
+    <path d="M84 100 Q100 118 116 100 Q100 110 84 100 Z" fill="#A0524A"/>
+    <!-- ショッピング袋（手前） -->
+    <g transform="rotate(-6 56 168)"><rect x="36" y="150" width="40" height="44" rx="4" fill="#D99BB0" stroke="#B5778C" stroke-width="2.6"/><path d="M46 150 Q46 138 56 138 Q66 138 66 150" fill="none" stroke="#B5778C" stroke-width="2.4"/></g>
+    <g transform="rotate(8 144 166)"><rect x="124" y="150" width="40" height="44" rx="4" fill="#E8C56B" stroke="#C2A050" stroke-width="2.6"/><path d="M134 150 Q134 138 144 138 Q154 138 154 150" fill="none" stroke="#C2A050" stroke-width="2.4"/></g>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#8B6E8A" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 衝動買い後悔ループ：段ボール箱の山、開封しながら半泣き
+"UMID": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#A185A0"/>
+  <clipPath id="c_UMID"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UMID)">
+    <g opacity="0.14" fill="#3A2E40">
+      <rect x="24" y="28" width="28" height="22" rx="2"/><rect x="150" y="32" width="28" height="22" rx="2"/>
+    </g>
+    <!-- 後ろの箱 -->
+    <rect x="20" y="116" width="50" height="42" rx="3" fill="#C9A878" stroke="#A6884E" stroke-width="2.5" transform="rotate(-8 45 137)"/>
+    <path d="M20 130 L70 130" stroke="#A6884E" stroke-width="2" transform="rotate(-8 45 137)"/>
+    <rect x="130" y="112" width="50" height="42" rx="3" fill="#C9A878" stroke="#A6884E" stroke-width="2.5" transform="rotate(9 155 133)"/>
+    <path d="M130 126 L180 126" stroke="#A6884E" stroke-width="2" transform="rotate(9 155 133)"/>
+    <ellipse cx="100" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 72 Q64 40 100 40 Q136 40 144 72 Q138 54 100 52 Q62 54 56 72 Z" fill="#4A3828"/>
+    <!-- 困り眉 -->
+    <path d="M70 68 Q80 64 88 70" stroke="#4A3828" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M112 70 Q120 64 130 68" stroke="#4A3828" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- うるうる目（涙） -->
+    <ellipse cx="83" cy="86" rx="8" ry="9" fill="#FFFDFA"/>
+    <ellipse cx="117" cy="86" rx="8" ry="9" fill="#FFFDFA"/>
+    <circle cx="84" cy="88" r="4.5" fill="#3A2E26"/>
+    <circle cx="118" cy="88" r="4.5" fill="#3A2E26"/>
+    <circle cx="86" cy="86" r="1.6" fill="#fff"/><circle cx="120" cy="86" r="1.6" fill="#fff"/>
+    <path d="M78 94 Q76 102 80 104" stroke="#8FB8D4" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <!-- への字泣き口 -->
+    <path d="M88 110 Q100 104 112 110" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 手前の開いた箱 -->
+    <path d="M48 140 L152 140 L144 192 L56 192 Z" fill="#D9B886" stroke="#B5965A" stroke-width="2.8"/>
+    <path d="M48 140 L70 122 L122 122 L152 140" fill="#E8CEA0" stroke="#B5965A" stroke-width="2.6"/>
+    <path d="M70 122 L78 140 M122 122 L130 140" stroke="#B5965A" stroke-width="2"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#85698A" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 払い忘れ常習犯：督促ハガキ、ヘラッと脱力
+"UMPB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#AD8A9E"/>
+  <clipPath id="c_UMPB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UMPB)">
+    <g opacity="0.15" stroke="#3A2E40" stroke-width="2" fill="none">
+      <g transform="rotate(-12 40 40)"><rect x="24" y="30" width="32" height="22" rx="2"/></g>
+      <g transform="rotate(15 158 38)"><rect x="142" y="28" width="32" height="22" rx="2"/></g>
+    </g>
+    <!-- ハガキ散乱 -->
+    <rect x="22" y="118" width="54" height="36" rx="3" fill="#E8DCC0" stroke="#C2B088" stroke-width="2.4" transform="rotate(-10 49 136)"/>
+    <line x1="30" y1="128" x2="68" y2="128" stroke="#C2B088" stroke-width="1.6" transform="rotate(-10 49 136)"/>
+    <line x1="30" y1="136" x2="60" y2="136" stroke="#C2B088" stroke-width="1.6" transform="rotate(-10 49 136)"/>
+    <rect x="126" y="116" width="54" height="36" rx="3" fill="#E8DCC0" stroke="#C2B088" stroke-width="2.4" transform="rotate(10 153 134)"/>
+    <rect x="138" y="120" width="14" height="10" fill="#D96B66" opacity="0.7" transform="rotate(10 153 134)"/>
+    <ellipse cx="100" cy="86" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="86" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 74 Q64 44 100 44 Q136 44 144 74 Q138 58 100 56 Q62 58 56 74 Z" fill="#5C4A38"/>
+    <!-- 脱力点目（への字眉なし、ぼんやり） -->
+    <ellipse cx="82" cy="86" rx="6" ry="3" fill="#3A2E26"/>
+    <ellipse cx="118" cy="86" rx="6" ry="3" fill="#3A2E26"/>
+    <!-- ヘラッと口（にへら） -->
+    <path d="M82 106 Q100 114 118 104" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 汗1粒（小） -->
+    <path d="M140 80 Q144 87 140 91 Q136 87 140 80 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.2"/>
+    <!-- 手前ハガキ（手に持つ風） -->
+    <rect x="56" y="150" width="88" height="44" rx="4" fill="#E8DCC0" stroke="#C2B088" stroke-width="2.8"/>
+    <rect x="120" y="156" width="18" height="13" fill="#D96B66" opacity="0.8"/>
+    <line x1="64" y1="162" x2="108" y2="162" stroke="#C2B088" stroke-width="2"/>
+    <line x1="64" y1="172" x2="100" y2="172" stroke="#C2B088" stroke-width="2"/>
+    <line x1="64" y1="182" x2="104" y2="182" stroke="#C2B088" stroke-width="2"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#8B6E84" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 督促状コレクター（確定済み詰め版）
+"UMPD": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#9B8AA3"/>
+  <clipPath id="c_UMPD"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UMPD)">
+    <g opacity="0.16" stroke="#3A2E40" stroke-width="2" fill="none">
+      <g transform="rotate(-15 40 40)"><rect x="22" y="28" width="34" height="24" rx="3"/><path d="M22 31 L39 43 L56 31"/></g>
+      <g transform="rotate(18 158 38)"><rect x="142" y="26" width="34" height="24" rx="3"/><path d="M142 29 L159 41 L176 29"/></g>
+      <g transform="rotate(12 36 168)"><rect x="20" y="158" width="34" height="24" rx="3"/><path d="M20 161 L37 173 L54 161"/></g>
+      <g transform="rotate(-14 168 170)"><rect x="152" y="160" width="34" height="24" rx="3"/><path d="M152 163 L169 175 L186 163"/></g>
+    </g>
+    <rect x="22" y="112" width="58" height="40" rx="5" fill="#C99BA4" stroke="#A87680" stroke-width="2.5" transform="rotate(-14 51 132)"/>
+    <path d="M22 116 L51 134 L80 116" stroke="#A87680" stroke-width="2.5" fill="none" transform="rotate(-14 51 132)"/>
+    <rect x="120" y="108" width="58" height="40" rx="5" fill="#C9A86B" stroke="#A6874E" stroke-width="2.5" transform="rotate(12 149 128)"/>
+    <path d="M120 112 L149 130 L178 112" stroke="#A6874E" stroke-width="2.5" fill="none" transform="rotate(12 149 128)"/>
+    <ellipse cx="100" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 72 Q64 40 100 40 Q136 40 144 72 Q138 54 118 52 Q110 64 100 56 Q90 64 82 52 Q62 54 56 72 Z" fill="#5C4A3C"/>
+    <path d="M68 66 Q79 61 89 69" stroke="#5C4A3C" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <path d="M111 69 Q121 61 132 66" stroke="#5C4A3C" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="82" cy="84" rx="10" ry="11" fill="#FFFDFA"/>
+    <ellipse cx="118" cy="84" rx="10" ry="11" fill="#FFFDFA"/>
+    <circle cx="89" cy="80" r="4.6" fill="#3A2E26"/>
+    <circle cx="125" cy="80" r="4.6" fill="#3A2E26"/>
+    <path d="M72 79 Q82 76 92 79" stroke="#C9A580" stroke-width="2" fill="none"/>
+    <path d="M108 79 Q118 76 128 79" stroke="#C9A580" stroke-width="2" fill="none"/>
+    <path d="M143 70 Q150 83 143 90 Q136 83 143 70 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.5"/>
+    <path d="M150 92 Q154 99 150 103 Q146 99 150 92 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.2"/>
+    <path d="M68 94 L68 101" stroke="#C99086" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+    <path d="M72 94 L72 101" stroke="#C99086" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+    <path d="M82 106 Q92 102 100 107 Q108 112 118 104" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <rect x="6" y="150" width="68" height="46" rx="6" fill="#B0A0BC" stroke="#8B7C97" stroke-width="2.6" transform="rotate(-8 40 173)"/>
+    <path d="M6 154 L40 176 L74 154" stroke="#8B7C97" stroke-width="2.6" fill="none" transform="rotate(-8 40 173)"/>
+    <rect x="128" y="148" width="68" height="46" rx="6" fill="#C99BA4" stroke="#A87680" stroke-width="2.6" transform="rotate(7 162 171)"/>
+    <path d="M128 152 L162 174 L196 152" stroke="#A87680" stroke-width="2.6" fill="none" transform="rotate(7 162 171)"/>
+    <rect x="50" y="120" width="100" height="58" rx="7" fill="#8FA890" stroke="#6E8A70" stroke-width="3"/>
+    <path d="M50 126 L100 158 L150 126" stroke="#6E8A70" stroke-width="3" fill="none"/>
+    <circle cx="131" cy="140" r="13" fill="none" stroke="#D96B66" stroke-width="2.6"/>
+    <text x="131" y="145.5" font-size="14" font-weight="800" fill="#D96B66" text-anchor="middle" font-family="sans-serif">!</text>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#7E6E87" stroke-width="3" fill="none"/>
+</svg>`,
+
+// わかっててポチる課金戦士：スマホ、ドヤ顔で親指ポチ
+"AMIB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#B0879A"/>
+  <clipPath id="c_AMIB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_AMIB)">
+    <g opacity="0.15" fill="#3A2E40">
+      <text x="28" y="48" font-size="20">🛒</text><text x="150" y="46" font-size="18" stroke="none">¥</text>
+    </g>
+    <ellipse cx="100" cy="82" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="82" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 70 Q64 38 100 38 Q136 38 144 70 Q138 52 100 50 Q62 52 56 70 Z" fill="#3A2820"/>
+    <!-- ドヤ半目（自信） -->
+    <path d="M72 82 Q82 80 92 82" stroke="#3A2E26" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M108 82 Q118 80 128 82" stroke="#3A2E26" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <circle cx="82" cy="86" r="3" fill="#3A2E26"/><circle cx="118" cy="86" r="3" fill="#3A2E26"/>
+    <!-- ニヤリ口（片上げ） -->
+    <path d="M82 104 Q96 110 118 102" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- キラッ -->
+    <text x="128" y="70" font-size="16" fill="#F0D878" stroke="none">✦</text>
+    <!-- 手前スマホ＋親指 -->
+    <rect x="64" y="142" width="72" height="52" rx="8" fill="#3E3848" stroke="#2A2632" stroke-width="2.6"/>
+    <rect x="72" y="150" width="56" height="30" rx="3" fill="#9AC8E0"/>
+    <rect x="80" y="156" width="40" height="8" rx="2" fill="#fff" opacity="0.8"/>
+    <rect x="96" y="168" width="24" height="7" rx="3.5" fill="#E8956B"/>
+    <!-- 親指 -->
+    <ellipse cx="108" cy="172" rx="11" ry="9" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.4"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#8E6B7E" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 反省だけは一流の浪費家：レシート、涙目だが手は買ってる
+"AMID": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#A8829C"/>
+  <clipPath id="c_AMID"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_AMID)">
+    <g opacity="0.14" fill="#3A2E40">
+      <rect x="26" y="28" width="16" height="30" rx="1"/><rect x="158" y="30" width="16" height="30" rx="1"/>
+    </g>
+    <!-- 長いレシート左右 -->
+    <path d="M28 110 L52 110 L50 178 L46 172 L42 178 L38 172 L34 178 L30 172 Z" fill="#F0EDE6" stroke="#C9C2B5" stroke-width="2" transform="rotate(-10 40 144)"/>
+    <line x1="34" y1="122" x2="46" y2="122" stroke="#C9C2B5" stroke-width="1.4" transform="rotate(-10 40 144)"/>
+    <line x1="34" y1="132" x2="46" y2="132" stroke="#C9C2B5" stroke-width="1.4" transform="rotate(-10 40 144)"/>
+    <path d="M148 108 L172 108 L170 176 L166 170 L162 176 L158 170 L154 176 L150 170 Z" fill="#F0EDE6" stroke="#C9C2B5" stroke-width="2" transform="rotate(11 160 142)"/>
+    <ellipse cx="100" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 72 Q64 40 100 40 Q136 40 144 72 Q138 54 100 52 Q62 54 56 72 Z" fill="#5C4636"/>
+    <!-- 困り眉強め -->
+    <path d="M70 68 Q80 63 88 70" stroke="#5C4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M112 70 Q120 63 130 68" stroke="#5C4636" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 涙目 -->
+    <ellipse cx="83" cy="86" rx="8" ry="9" fill="#FFFDFA"/>
+    <ellipse cx="117" cy="86" rx="8" ry="9" fill="#FFFDFA"/>
+    <circle cx="84" cy="88" r="4.3" fill="#3A2E26"/><circle cx="118" cy="88" r="4.3" fill="#3A2E26"/>
+    <circle cx="85.5" cy="86" r="1.5" fill="#fff"/><circle cx="119.5" cy="86" r="1.5" fill="#fff"/>
+    <path d="M77 93 Q75 100 79 102" stroke="#8FB8D4" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M123 93 Q125 100 121 102" stroke="#8FB8D4" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <!-- ぐっと結ぶ口 -->
+    <path d="M86 108 L114 108" stroke="#A06A4A" stroke-width="3" stroke-linecap="round"/>
+    <!-- 手前：ショッピング袋を握る手（反省してるのに買ってる） -->
+    <g transform="rotate(-4 100 168)">
+      <rect x="74" y="150" width="52" height="46" rx="4" fill="#D9A8C0" stroke="#B5849C" stroke-width="2.6"/>
+      <path d="M86 150 Q86 138 100 138 Q114 138 114 150" fill="none" stroke="#B5849C" stroke-width="2.4"/>
+    </g>
+    <ellipse cx="78" cy="160" rx="9" ry="7" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.2"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#86687E" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 見て見ぬふり家計簿：両手で目を覆う
+"AMPB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#A8859B"/>
+  <clipPath id="c_AMPB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_AMPB)">
+    <g opacity="0.14" fill="#3A2E40">
+      <rect x="26" y="30" width="26" height="34" rx="3"/><rect x="150" y="32" width="26" height="34" rx="3"/>
+    </g>
+    <!-- グラフが下がる背景 -->
+    <polyline points="20,120 50,134 80,128 110,150 140,158 178,172" fill="none" stroke="#D96B66" stroke-width="2.6" opacity="0.5"/>
+    <ellipse cx="100" cy="88" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="88" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 76 Q64 46 100 46 Q136 46 144 76 Q138 58 100 56 Q62 58 56 76 Z" fill="#5C4A38"/>
+    <!-- 眉 -->
+    <path d="M72 80 Q80 77 88 80" stroke="#5C4A38" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M112 80 Q120 77 128 80" stroke="#5C4A38" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <!-- 口（への字、現実は見たくない） -->
+    <path d="M88 108 Q100 102 112 108" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 両手で目を覆う（手前で目を隠す） -->
+    <path d="M58 84 Q78 74 98 86 Q92 98 76 98 Q62 96 58 84 Z" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.6"/>
+    <path d="M142 84 Q122 74 102 86 Q108 98 124 98 Q138 96 142 84 Z" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.6"/>
+    <!-- 指の線 -->
+    <path d="M70 80 L72 96 M80 78 L82 94 M90 80 L90 94" stroke="#C9A580" stroke-width="1.6"/>
+    <path d="M130 80 L128 96 M120 78 L118 94 M110 80 L110 94" stroke="#C9A580" stroke-width="1.6"/>
+    <!-- 指の隙間から見える -->
+    <circle cx="86" cy="86" r="2.4" fill="#3A2E26"/>
+    <!-- 手前：閉じた家計簿アプリ風スマホ -->
+    <rect x="70" y="154" width="60" height="42" rx="7" fill="#3E3848" stroke="#2A2632" stroke-width="2.4"/>
+    <rect x="78" y="162" width="44" height="22" rx="2" fill="#7FA8C0" opacity="0.5"/>
+    <text x="100" y="178" font-size="13" fill="#fff" text-anchor="middle" opacity="0.7">¥…</text>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#86687C" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 通帳恐怖症：通帳から顔を背け硬直
+"AMPD": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#967F92"/>
+  <clipPath id="c_AMPD"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_AMPD)">
+    <g opacity="0.14" fill="#3A2E40">
+      <rect x="26" y="30" width="30" height="22" rx="2"/><rect x="148" y="32" width="30" height="22" rx="2"/>
+    </g>
+    <ellipse cx="96" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="96" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M52 72 Q60 40 96 40 Q132 40 140 72 Q134 54 96 52 Q58 54 52 72 Z" fill="#4A3A2C"/>
+    <!-- 顔を左に背ける：目を固く閉じる -->
+    <path d="M64 82 Q72 78 80 82" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M100 82 Q108 78 116 82" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 固まった口（小さく開く・引きつり） -->
+    <ellipse cx="90" cy="104" rx="7" ry="5" fill="#A0524A"/>
+    <!-- 青ざめ縦線 -->
+    <path d="M118 76 L118 86 M124 78 L124 88" stroke="#8FA8C0" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+    <!-- 大量の汗 -->
+    <path d="M132 70 Q138 82 132 88 Q126 82 132 70 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.4"/>
+    <path d="M140 86 Q144 93 140 97 Q136 93 140 86 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.2"/>
+    <!-- 手前：突き出される通帳（右から迫る） -->
+    <g transform="rotate(-8 150 150)">
+      <rect x="120" y="128" width="72" height="50" rx="4" fill="#4A6A8A" stroke="#32485E" stroke-width="2.8"/>
+      <rect x="128" y="136" width="56" height="16" rx="2" fill="#E8E2D6"/>
+      <line x1="132" y1="142" x2="178" y2="142" stroke="#A0988A" stroke-width="1.6"/>
+      <line x1="132" y1="148" x2="170" y2="148" stroke="#A0988A" stroke-width="1.6"/>
+      <text x="174" y="170" font-size="13" fill="#fff" text-anchor="end" opacity="0.9">¥0</text>
+    </g>
+    <!-- 背ける手（顔の前で制止） -->
+    <ellipse cx="116" cy="108" rx="11" ry="9" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.4" transform="rotate(20 116 108)"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#766176" stroke-width="3" fill="none"/>
+</svg>`,
+
+// ===== 時間グループ（青〜青緑系背景）=====
+
+// 思いつき行動隊長：電球、目キラキラ衝動
+"UTIB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#7FA0A8"/>
+  <circle cx="100" cy="100" r="92" fill="#7FA0A8"/>
+  <clipPath id="c_UTIB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UTIB)">
+    <g opacity="0.16" fill="#2E3A40">
+      <text x="28" y="50" font-size="20" stroke="none">!</text><text x="152" y="46" font-size="20" stroke="none">?</text>
+      <text x="160" y="168" font-size="20" stroke="none">!</text>
+    </g>
+    <!-- 後ろに散らかる道具 -->
+    <rect x="20" y="124" width="36" height="14" rx="3" fill="#C99878" stroke="#A6764E" stroke-width="2" transform="rotate(-20 38 131)"/>
+    <circle cx="160" cy="130" r="14" fill="none" stroke="#A6764E" stroke-width="3" transform="rotate(10 160 130)"/>
+    <ellipse cx="100" cy="88" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="88" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 76 Q64 44 100 44 Q136 44 144 76 Q138 56 100 54 Q62 56 56 76 Z" fill="#4A3A2C"/>
+    <!-- キラキラ目（大きい） -->
+    <circle cx="82" cy="88" r="9" fill="#FFFDFA"/><circle cx="118" cy="88" r="9" fill="#FFFDFA"/>
+    <circle cx="83" cy="89" r="5" fill="#3A2E26"/><circle cx="119" cy="89" r="5" fill="#3A2E26"/>
+    <circle cx="85" cy="87" r="2" fill="#fff"/><circle cx="121" cy="87" r="2" fill="#fff"/>
+    <path d="M82 78 L83 74 M118 78 L119 74" stroke="#F0D878" stroke-width="2" stroke-linecap="round"/>
+    <!-- 上がった眉（ワクワク） -->
+    <path d="M70 74 Q80 70 88 74" stroke="#4A3A2C" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M112 74 Q120 70 130 74" stroke="#4A3A2C" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <!-- 開いた笑み -->
+    <path d="M86 104 Q100 116 114 104 Q100 110 86 104 Z" fill="#A0524A"/>
+    <!-- 頭上の電球 -->
+    <circle cx="100" cy="30" r="14" fill="#F5E08A" stroke="#D9C060" stroke-width="2.4"/>
+    <rect x="94" y="42" width="12" height="6" rx="1" fill="#C9B050"/>
+    <path d="M100 14 L100 8 M84 22 L80 18 M116 22 L120 18" stroke="#F0D060" stroke-width="2.4" stroke-linecap="round"/>
+    <!-- 手前：散らかった物 -->
+    <rect x="40" y="160" width="44" height="34" rx="4" fill="#8FB0C0" stroke="#6A8A9A" stroke-width="2.6" transform="rotate(-6 62 177)"/>
+    <circle cx="140" cy="176" r="20" fill="#C9A0B8" stroke="#A57E96" stroke-width="2.6"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#5F8088" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 寄り道で人生迷子：分岐矢印、きょとん迷子
+"UTID": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#7E9BA8"/>
+  <clipPath id="c_UTID"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UTID)">
+    <g opacity="0.16" fill="#2E3A40" stroke="#2E3A40">
+      <text x="28" y="48" font-size="20" stroke="none">?</text><text x="154" y="44" font-size="20" stroke="none">?</text>
+      <text x="158" y="170" font-size="18" stroke="none">?</text>
+    </g>
+    <!-- 分岐する矢印（道に迷う） -->
+    <g stroke="#5A7888" stroke-width="3" fill="none" opacity="0.6">
+      <path d="M100 150 L60 120"/><path d="M60 120 L66 122 M60 120 L62 128"/>
+      <path d="M100 150 L140 118"/><path d="M140 118 L134 120 M140 118 L138 126"/>
+      <path d="M100 150 L100 110"/><path d="M100 110 L96 116 M100 110 L104 116"/>
+    </g>
+    <ellipse cx="100" cy="86" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="86" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 74 Q64 44 100 44 Q136 44 144 74 Q138 56 100 54 Q62 56 56 74 Z" fill="#4A3A2C"/>
+    <!-- きょとん目（点＋ぐるぐる片方） -->
+    <circle cx="82" cy="86" r="7" fill="#FFFDFA"/><circle cx="118" cy="86" r="7" fill="#FFFDFA"/>
+    <circle cx="82" cy="86" r="3.5" fill="#3A2E26"/>
+    <path d="M115 83 Q121 83 121 87 Q121 90 117 90 Q114 90 115 87" fill="none" stroke="#3A2E26" stroke-width="1.8"/>
+    <!-- 眉ハの字（困惑） -->
+    <path d="M70 76 Q80 74 88 78" stroke="#4A3A2C" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M112 78 Q120 74 130 76" stroke="#4A3A2C" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <!-- ぽかん口 -->
+    <ellipse cx="100" cy="106" rx="6" ry="7" fill="#A0524A"/>
+    <!-- 頭上 ? -->
+    <text x="100" y="32" font-size="26" fill="#E8E0C0" text-anchor="middle" font-weight="800">?</text>
+    <!-- 手前：迷路風 or タブ散乱 -->
+    <rect x="46" y="158" width="48" height="36" rx="4" fill="#8FB0C0" stroke="#6A8A9A" stroke-width="2.6"/>
+    <rect x="52" y="164" width="36" height="6" rx="2" fill="#fff" opacity="0.6"/>
+    <rect x="106" y="156" width="48" height="36" rx="4" fill="#A0C0B0" stroke="#7E9E8E" stroke-width="2.6" transform="rotate(6 130 174)"/>
+    <rect x="112" y="162" width="36" height="6" rx="2" fill="#fff" opacity="0.6" transform="rotate(6 130 174)"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#5E7B88" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 遅刻は文化な人：時計、焦り笑い汗
+"UTPB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#83A0A0"/>
+  <circle cx="100" cy="100" r="92" fill="#83A0A0"/>
+  <clipPath id="c_UTPB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UTPB)">
+    <g opacity="0.15" fill="none" stroke="#2E3A40" stroke-width="2">
+      <circle cx="38" cy="40" r="12"/><circle cx="158" cy="38" r="12"/>
+    </g>
+    <!-- 背景の大時計 -->
+    <circle cx="150" cy="120" r="30" fill="#E8E2D0" stroke="#B5AE98" stroke-width="3" opacity="0.85"/>
+    <line x1="150" y1="120" x2="150" y2="102" stroke="#5A5448" stroke-width="3" stroke-linecap="round"/>
+    <line x1="150" y1="120" x2="164" y2="124" stroke="#5A5448" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="92" cy="86" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="92" cy="86" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M48 74 Q56 44 92 44 Q128 44 136 74 Q130 56 92 54 Q54 56 48 74 Z" fill="#4A3A2C"/>
+    <!-- 焦り眉（八の字） -->
+    <path d="M62 76 Q72 72 80 78" stroke="#4A3A2C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M104 78 Q112 72 122 76" stroke="#4A3A2C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <!-- 笑ってごまかす目（への字逆＋汗） -->
+    <path d="M66 86 Q74 80 82 86" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M102 86 Q110 80 118 86" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 大汗 -->
+    <path d="M128 76 Q134 88 128 94 Q122 88 128 76 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.5"/>
+    <!-- 愛想笑い（大口・歯） -->
+    <path d="M70 104 Q92 118 116 102 Q92 112 70 104 Z" fill="#A0524A"/>
+    <rect x="80" y="104" width="24" height="5" rx="2" fill="#fff" opacity="0.85"/>
+    <!-- 頬かき手 -->
+    <ellipse cx="64" cy="104" rx="9" ry="7" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.2"/>
+    <!-- 手前：走る足元（動線） -->
+    <path d="M40 180 Q60 168 80 180" stroke="#fff" stroke-width="3" fill="none" opacity="0.5" stroke-linecap="round"/>
+    <path d="M30 188 Q54 176 78 188" stroke="#fff" stroke-width="3" fill="none" opacity="0.4" stroke-linecap="round"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#638080" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 永遠の明日からやる：カレンダー＆布団、やる気顔だけど寝てる
+"UTPD": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#788FA0"/>
+  <clipPath id="c_UTPD"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_UTPD)">
+    <g opacity="0.15" fill="#2E3A40">
+      <rect x="26" y="30" width="26" height="26" rx="2"/><rect x="150" y="32" width="26" height="26" rx="2"/>
+    </g>
+    <!-- 背景カレンダー（×印だらけ） -->
+    <g opacity="0.5">
+      <rect x="120" y="100" width="56" height="50" rx="4" fill="#E8E2D0" stroke="#B5AE98" stroke-width="2.4"/>
+      <line x1="120" y1="114" x2="176" y2="114" stroke="#B5AE98" stroke-width="2"/>
+      <g stroke="#D96B66" stroke-width="2">
+        <path d="M126 120 l8 8 M134 120 l-8 8"/><path d="M140 120 l8 8 M148 120 l-8 8"/>
+        <path d="M154 120 l8 8 M162 120 l-8 8"/><path d="M126 134 l8 8 M134 134 l-8 8"/>
+        <path d="M140 134 l8 8 M148 134 l-8 8"/>
+      </g>
+    </g>
+    <ellipse cx="100" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 72 Q64 42 100 42 Q136 42 100 52 Q64 52 56 72 Z" fill="#4A3A2C"/><path d="M56 72 Q64 42 100 42 Q136 42 144 72 Q138 54 100 52 Q62 54 56 72 Z" fill="#4A3A2C"/>
+    <!-- 寝てる目（zzz・閉じ目の半月） -->
+    <path d="M72 87 Q82 92 92 87" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M108 87 Q118 92 128 87" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 鼻ちょうちん -->
+    <ellipse cx="118" cy="100" rx="6" ry="8" fill="#BFE0EC" stroke="#8FB8C8" stroke-width="1.6" opacity="0.85"/>
+    <!-- にへら寝顔口 -->
+    <path d="M86 106 Q100 112 110 106" stroke="#A06A4A" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <!-- zzz -->
+    <text x="140" y="60" font-size="16" fill="#E8E0C0" font-weight="800">z</text>
+    <text x="152" y="48" font-size="13" fill="#E8E0C0" font-weight="800">z</text>
+    <!-- 手前：布団（被ってる） -->
+    <path d="M30 196 Q30 158 100 158 Q170 158 170 196 Z" fill="#9AB0C0" stroke="#7591A2" stroke-width="3"/>
+    <path d="M30 178 Q100 170 170 178" stroke="#7591A2" stroke-width="2" fill="none" opacity="0.7"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#586F80" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 現実逃避ダッシュ王：掃除用具/ダンベル、目をそらし全力作業
+"ATIB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#7C97A4"/>
+  <clipPath id="c_ATIB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_ATIB)">
+    <g opacity="0.15" fill="#2E3A40">
+      <text x="28" y="48" font-size="18" stroke="none">!</text><rect x="150" y="32" width="24" height="20" rx="2"/>
+    </g>
+    <!-- 背景：放置されたPC/書類（やるべきこと） -->
+    <g opacity="0.45">
+      <rect x="20" y="106" width="40" height="30" rx="3" fill="#5A6E7E" stroke="#3E4E5C" stroke-width="2.4"/>
+      <rect x="26" y="112" width="28" height="18" rx="1" fill="#8FA8B8"/>
+    </g>
+    <ellipse cx="100" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 72 Q64 42 100 42 Q136 42 144 72 Q138 54 100 52 Q62 54 56 72 Z" fill="#4A3A2C"/>
+    <!-- 目をそらす（PCと逆へ）＋やる気 -->
+    <path d="M70 76 Q80 71 88 76" stroke="#4A3A2C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M112 76 Q120 71 130 76" stroke="#4A3A2C" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <ellipse cx="84" cy="86" rx="8" ry="9" fill="#FFFDFA"/><ellipse cx="120" cy="86" rx="8" ry="9" fill="#FFFDFA"/>
+    <circle cx="88" cy="84" r="4.3" fill="#3A2E26"/><circle cx="124" cy="84" r="4.3" fill="#3A2E26"/>
+    <!-- 気合い口（への字に力） -->
+    <path d="M84 106 Q100 102 116 106" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 力み汗 -->
+    <path d="M62 82 Q58 88 62 92 Q66 88 62 82 Z" fill="#A9D4E0" stroke="#7FB5C5" stroke-width="1.3"/>
+    <!-- 手前：ダンベルを持ち上げる手 -->
+    <g transform="rotate(-10 100 168)">
+      <rect x="76" y="160" width="48" height="12" rx="3" fill="#4E5E6E" stroke="#36424E" stroke-width="2.4"/>
+      <rect x="68" y="152" width="14" height="28" rx="3" fill="#3E4E5C"/>
+      <rect x="118" y="152" width="14" height="28" rx="3" fill="#3E4E5C"/>
+    </g>
+    <ellipse cx="100" cy="166" rx="11" ry="8" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.4"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#5C7784" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 自己嫌悪マラソンランナー：ぐるぐる矢印・夜、自責で曇った顔
+"ATID": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#6E7E92"/>
+  <clipPath id="c_ATID"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_ATID)">
+    <!-- 夜空＆月 -->
+    <circle cx="160" cy="44" r="14" fill="#E8E2C8" opacity="0.55"/>
+    <circle cx="166" cy="40" r="11" fill="#6E7E92" opacity="0.9"/>
+    <g opacity="0.5" fill="#E8E2C8"><circle cx="30" cy="36" r="1.6"/><circle cx="50" cy="50" r="1.2"/><circle cx="40" cy="160" r="1.6"/></g>
+    <!-- ぐるぐる渦（自責ループ） -->
+    <path d="M100 60 Q140 60 140 100 Q140 140 100 140 Q70 140 70 110 Q70 90 92 90 Q106 90 106 104" fill="none" stroke="#566276" stroke-width="2.6" opacity="0.55"/>
+    <ellipse cx="100" cy="86" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="86" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 74 Q64 44 100 44 Q136 44 144 74 Q138 56 100 54 Q62 56 56 74 Z" fill="#3E3024"/>
+    <!-- 影（顔上半分に陰） -->
+    <path d="M56 74 Q100 86 144 74 Q144 64 100 62 Q56 64 56 74 Z" fill="#000" opacity="0.12"/>
+    <!-- 八の字困り眉強 -->
+    <path d="M68 78 Q80 73 88 80" stroke="#3E3024" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M112 80 Q120 73 132 78" stroke="#3E3024" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 沈んだ目（半目・下向き） -->
+    <path d="M74 88 Q82 90 90 88" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M110 88 Q118 90 126 88" stroke="#3A2E26" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="82" cy="90" r="2.4" fill="#3A2E26"/><circle cx="118" cy="90" r="2.4" fill="#3A2E26"/>
+    <!-- 縦線（憂鬱） -->
+    <path d="M72 98 L72 106 M76 98 L76 106" stroke="#7E8AA0" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+    <path d="M124 98 L124 106 M128 98 L128 106" stroke="#7E8AA0" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+    <!-- への字口（沈む） -->
+    <path d="M86 112 Q100 106 114 112" stroke="#8A5A42" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 手前：膝抱えシルエット -->
+    <path d="M58 196 Q56 156 100 154 Q144 156 142 196 Z" fill="#4E5A6E" stroke="#3A4456" stroke-width="2.8"/>
+    <path d="M70 186 Q84 168 100 168 Q116 168 130 186" stroke="#3A4456" stroke-width="2.4" fill="none"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#525E72" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 開き直り先延ばしマスター：締切メモ、余裕の半目足組み
+"ATPB": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#84A09A"/>
+  <circle cx="100" cy="100" r="92" fill="#84A09A"/>
+  <clipPath id="c_ATPB"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_ATPB)">
+    <g opacity="0.14" fill="#2E3A40">
+      <rect x="26" y="30" width="26" height="20" rx="2"/><text x="152" y="48" font-size="18" stroke="none">!</text>
+    </g>
+    <!-- 背景：締切メモ（赤丸〆切） -->
+    <g opacity="0.5" transform="rotate(8 150 120)">
+      <rect x="124" y="100" width="52" height="42" rx="3" fill="#E8E2D0" stroke="#B5AE98" stroke-width="2.4"/>
+      <text x="150" y="120" font-size="13" fill="#D96B66" text-anchor="middle" font-weight="800">〆切</text>
+      <line x1="132" y1="128" x2="168" y2="128" stroke="#B5AE98" stroke-width="1.6"/>
+    </g>
+    <ellipse cx="100" cy="84" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="84" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 72 Q64 42 100 42 Q136 42 144 72 Q138 54 100 52 Q62 54 56 72 Z" fill="#4A3A2C"/>
+    <!-- 余裕の半目（ジト・ふてぶて） -->
+    <path d="M72 86 L92 86" stroke="#3A2E26" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M108 86 L128 86" stroke="#3A2E26" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="82" cy="89" r="2.6" fill="#3A2E26"/><circle cx="118" cy="89" r="2.6" fill="#3A2E26"/>
+    <!-- 平坦眉 -->
+    <path d="M70 76 L90 75" stroke="#4A3A2C" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M110 75 L130 76" stroke="#4A3A2C" stroke-width="2.6" stroke-linecap="round"/>
+    <!-- ニヤ・不敵口 -->
+    <path d="M84 104 Q100 110 116 104" stroke="#A06A4A" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- 手前：足組み（リラックス）＋ドリンク -->
+    <path d="M40 196 Q44 168 80 170 L120 188 Q124 192 120 196 Z" fill="#5E7A74" stroke="#46625C" stroke-width="2.6"/>
+    <path d="M120 170 Q140 178 150 196" stroke="#46625C" stroke-width="2.6" fill="none"/>
+    <!-- ドリンク -->
+    <rect x="148" y="160" width="20" height="28" rx="3" fill="#C9A0B8" stroke="#A57E96" stroke-width="2.2"/>
+    <rect x="154" y="150" width="3" height="14" fill="#A57E96"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#64807A" stroke-width="3" fill="none"/>
+</svg>`,
+
+// 罪悪感だけ抱えるサボり魔：スマホ＆もやもや雲、罪悪感で沈む
+"ATPD": () => `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="100" cy="100" r="92" fill="#74849A"/>
+  <clipPath id="c_ATPD"><circle cx="100" cy="100" r="92"/></clipPath>
+  <g clip-path="url(#c_ATPD)">
+    <!-- もやもや雲（罪悪感） -->
+    <g opacity="0.4" fill="#566276">
+      <ellipse cx="50" cy="50" rx="22" ry="13"/><ellipse cx="150" cy="46" rx="20" ry="12"/>
+      <ellipse cx="160" cy="150" rx="20" ry="12"/>
+    </g>
+    <!-- やるべきこと（薄い書類）放置 -->
+    <g opacity="0.4"><rect x="22" y="112" width="36" height="28" rx="2" fill="#E8E2D0" stroke="#B5AE98" stroke-width="2"/><line x1="28" y1="120" x2="52" y2="120" stroke="#B5AE98" stroke-width="1.6"/><line x1="28" y1="128" x2="48" y2="128" stroke="#B5AE98" stroke-width="1.6"/></g>
+    <ellipse cx="100" cy="86" rx="44" ry="42" fill="#E3C3A2"/><ellipse cx="100" cy="86" rx="44" ry="42" fill="none" stroke="#C9A580" stroke-width="2.5"/><path d="M56 74 Q64 44 100 44 Q136 44 144 74 Q138 56 100 54 Q62 56 56 74 Z" fill="#3E3024"/>
+    <!-- 八の字眉 -->
+    <path d="M68 80 Q80 75 88 82" stroke="#3E3024" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M112 82 Q120 75 132 80" stroke="#3E3024" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <!-- うつろ目（下向き・光なし） -->
+    <ellipse cx="83" cy="88" rx="7" ry="8" fill="#FFFDFA"/><ellipse cx="117" cy="88" rx="7" ry="8" fill="#FFFDFA"/>
+    <circle cx="83" cy="91" r="3.6" fill="#3A2E26"/><circle cx="117" cy="91" r="3.6" fill="#3A2E26"/>
+    <!-- 口（小さく沈む） -->
+    <path d="M90 110 Q100 105 110 110" stroke="#8A5A42" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <!-- 影 -->
+    <path d="M56 74 Q100 84 144 74 Q144 66 100 64 Q56 66 56 74 Z" fill="#000" opacity="0.1"/>
+    <!-- 手前：寝転んでスマホ（手だけ・光） -->
+    <rect x="62" y="150" width="76" height="46" rx="8" fill="#3E3848" stroke="#2A2632" stroke-width="2.6"/>
+    <rect x="70" y="158" width="60" height="30" rx="3" fill="#8FA8C0" opacity="0.7"/>
+    <!-- 画面光が顔に -->
+    <path d="M70 158 L100 130 L130 158 Z" fill="#A9C8E0" opacity="0.12"/>
+    <ellipse cx="84" cy="166" rx="9" ry="6" fill="#E3C3A2" stroke="#C9A580" stroke-width="2.2"/>
+  </g>
+  <circle cx="100" cy="100" r="92" stroke="#545E72" stroke-width="3" fill="none"/>
+</svg>`,
+
+};
+
+// エクスポート（ブラウザグローバル）
+if (typeof window !== 'undefined') { window.DAME_ICONS = ICONS; }
+
+</script>
+<script>
+// ====== データ：設問（YES/NO 12問・確定版）======
+// axis: 測定軸, yes: YESで倒れる側, no: NOで倒れる側
+const QUESTIONS = [
+  { id:1,  axis:"IP", yes:"I", no:"P", text:"やらかすときは、たいてい先に手が動いている" },
+  { id:2,  axis:"MT", yes:"T", no:"M", text:"「もうこんな時間」と「もうこんなにお金ない」、よく言うのは前者だ" },
+  { id:3,  axis:"BD", yes:"D", no:"B", text:"何年も前の失敗を、ふと思い出して凹むことがある" },
+  { id:4,  axis:"UA", yes:"A", no:"U", text:"自分のダメな部分は、3つくらいすぐ挙げられる" },
+  { id:5,  axis:"IP", yes:"I", no:"P", text:"部屋が散らかる原因は、片付けないことより増やすことだ" },
+  { id:6,  axis:"MT", yes:"M", no:"T", text:"月末、残高を見て「うっ」となることが多い" },
+  { id:7,  axis:"UA", yes:"U", no:"A", text:"だいたいのことは、人に言われて初めて気づく" },
+  { id:8,  axis:"BD", yes:"B", no:"D", text:"やらかしても、寝たらだいたいリセットされる" },
+  { id:9,  axis:"MT", yes:"M", no:"T", text:"約束や締め切りに遅れることより、予算オーバーのほうが起きがちだ" },
+  { id:10, axis:"BD", yes:"B", no:"D", text:"「まあ、人間だもん」で流せるほうだ" },
+  { id:11, axis:"UA", yes:"A", no:"U", text:"周りに指摘される前に、たいてい自分で気づいている" },
+  { id:12, axis:"IP", yes:"P", no:"I", text:"「あとでやろう」の\u201Cあとで\u201D が、なかなか来ない" },
+];
+
+// ====== データ：16タイプ本文（確定版）======
+const TYPES = {
+  UMIB:{ name:"楽天的散財モンスター", axes:"無自覚 × 金 × 衝動 × 立ち直る",
+    lead:"お金は使った瞬間が一番楽しい。残高は見なければ存在しない。",
+    items:["給料日、まず「自分へのご褒美」から予算を組み始める","セールで賢く散財。得した顔で、要らないものを","残高が減っても「また入るし」で気分は無傷"],
+    save:"その鋼のメンタル、別のことに使えば成功者になれた。" },
+  UMID:{ name:"衝動買い後悔ループ", axes:"無自覚 × 金 × 衝動 × 引きずる",
+    lead:"勢いで買って、後で凹む。学ばない。凹むとこまでがセット。",
+    items:["深夜のポチり、翌朝の通知で思い出す","「なんで買ったんだろう」と言いながら箱を開ける","二度と衝動買いしないと誓った翌週、違う物で同じ過ちを繰り返す"],
+    save:"後悔できるあなたは繊細だ。繊細なだけで、止まらないだけで。" },
+  UMPB:{ name:"払い忘れ常習犯", axes:"無自覚 × 金 × 放置 × 立ち直る",
+    lead:"払う気はある。気はあるだけ。督促が来ても「あ、そうだった」で終わる。",
+    items:["「いつまでに払う」より「気づいたら払う」で生きている","サブスク、3つは使ってないやつに払っている","払うのは早い。次の延滞を防ぐ気はない"],
+    save:"その動じなさ、大物の素質。まずは払おう。" },
+  UMPD:{ name:"督促状コレクター", axes:"無自覚 × 金 × 放置 × 引きずる",
+    lead:"開封しなければ、請求は存在しない。本気でそう思っている。",
+    items:["「次コンビニ行ったとき払おう」と思った請求書が、思い出した頃には期限切れ","届いた封筒を、開けずに「あとで」の山に積む","ダメージは本人より先に、信用情報に積み上がっている"],
+    save:"気づいたときには手遅れ、の常連。気づくのが、いつも遅い。" },
+  AMIB:{ name:"わかっててポチる課金戦士", axes:"自覚 × 金 × 衝動 × 立ち直る",
+    lead:"「これは無駄遣い」と認識した上でポチる。罪悪感は配送よりも早く消える。",
+    items:["散財の言い訳を考える時間すら省略して、堂々と買う","「自分へのご褒美」の頻度が、ご褒美の定義を破壊している","給料日前の金欠も「まあ毎月のことだし」で動じない"],
+    save:"後悔しない才能はある。発動が毎月なのが、唯一の難点。" },
+  AMID:{ name:"反省だけは一流の浪費家", axes:"自覚 × 金 × 衝動 × 引きずる",
+    lead:"買う前に「これは無駄遣いかも」と気づける賢さがある。気づいた上で、買う。あなたの反省文を集めたら短編集が出せるが、たぶんそれも衝動で買って読まない。",
+    items:["カートに入れて「一晩考えよう」とした商品、考えた結果ちゃんと買っている","「使った分は経験」と唱えて、その経験から何も学ばない","「今月は節約する」と決めた日の夜にコンビニで2,000円使い、決意ごと忘れる"],
+    save:"反省できる人間は、まだ伸びしろがある。伸びしろを今日も浪費してるだけで。" },
+  AMPB:{ name:"見て見ぬふり家計簿", axes:"自覚 × 金 × 放置 × 立ち直る",
+    lead:"家計がやばいのは知っている。知っているから、見ない。見なければ今日は平和。",
+    items:["家計簿アプリを入れた瞬間が、家計管理のピークだった","レシートは財布から直接ゴミ箱へ。見たら負け","「なんとかなってるから大丈夫」の実績だけで生きている"],
+    save:"逃げ切れた現実は、ひとつもない。" },
+  AMPD:{ name:"通帳恐怖症", axes:"自覚 × 金 × 放置 × 引きずる",
+    lead:"いくら足りないか、だいたいわかっている。正確な数字にする勇気だけがない。",
+    items:["記帳していない期間が長すぎて、もはや記帳が「答え合わせ」になっている","夜中にふと金のことを考えて、考えるのをやめるためにスマホを開く","「あといくらあれば安心か」の計算だけは、何度もしている"],
+    save:"現実を見る怖さを知ってるのは、現実の重さをわかってる証拠。見るなら、たぶん今が一番軽い。" },
+  UTIB:{ name:"思いつき行動隊長", axes:"無自覚 × 時間 × 衝動 × 立ち直る",
+    lead:"今日やると決めたことより、今思いついたことが常に優先される。本人の中では、それが計画。",
+    items:["部屋の掃除を始めたはずが、気づくとアルバムを見返して2時間経っている","「ちょっとやってみるか」で始めた予定外のことが、その日のメインになる","計画が崩れた自覚がないので、反省も後悔も発生しない"],
+    save:"その瞬発力、何かに向けたら無敵。向ける先が毎回変わるだけで。" },
+  UTID:{ name:"寄り道で人生迷子", axes:"無自覚 × 時間 × 衝動 × 引きずる",
+    lead:"脱線に脱線を重ねて、本来やりたかったことが何だったか思い出せない。でも止まれない。",
+    items:["調べ物で開いたタブが、いつの間にか全然関係ない動画になっている","「これ終わらせてから」の「これ」が、毎回別のものにすり替わっている","一日の終わりに、何をしていたか説明できないのに疲労だけはある"],
+    save:"寄り道の数だけ、見たものは多い。目的地には、まだ着いてないけど。" },
+  UTPB:{ name:"遅刻は文化な人", axes:"無自覚 × 時間 × 放置 × 立ち直る",
+    lead:"悪気はない。本当に悪気はない。だからこそ直らない。",
+    items:["家を出る時間に、準備が終わっていたことがない","5分遅刻の連絡を、5分遅れて送る","謝るのは早い。ただし同じ理由で、また遅れる"],
+    save:"その場の空気を一瞬で戻す愛嬌は本物。時間を戻す力はないけど。" },
+  UTPD:{ name:"永遠の「明日からやる」", axes:"無自覚 × 時間 × 放置 × 引きずる",
+    lead:"やる気はある。毎日ある。明日に置いてくるだけで。",
+    items:["「今日から本気出す」の今日が、もう何回目か数えていない","始める前の準備（机を片付ける、道具を揃える）で満足して終わる","「いつかやる」の「いつか」が、いつなのか考えたことがない"],
+    save:"その「いつかやる」を信じ続けられるの、才能だよ。いつかが来れば、の話だけど。" },
+  ATIB:{ name:"現実逃避ダッシュ王", axes:"自覚 × 時間 × 衝動 × 立ち直る",
+    lead:"やるべきことがあるときほど、部屋が片付き、料理が凝り、急に筋トレが始まる。",
+    items:["締め切り前夜だけ、なぜか関係ない作業の生産性が爆上がりする","逃げている自覚はある。あるが、逃げ先での充実感が勝つ","やってないことを思い出しても、「まあ今やってることも無駄じゃない」で上書きする"],
+    save:"逃げ足の速さも、立派な行動力。向きが90度ずれてるだけで。" },
+  ATID:{ name:"自己嫌悪マラソンランナー", axes:"自覚 × 時間 × 衝動 × 引きずる",
+    lead:"衝動的に逃げて、逃げた自分を責めて、責めながらまた逃げる。止まらない、止め方を知らない。",
+    items:["夜更かしがよくないと知りながら、その夜更かしで自己嫌悪の記事を読んでいる","「こんな自分はだめだ」と思った勢いで、関係ない衝動買いや夜更かしに走る","反省のクオリティだけは年々上がっていくのに、行動は1ミリも変わらない"],
+    save:"そこまで自分を見つめる体力、半分でいいから行動に回したい。" },
+  ATPB:{ name:"開き直り先延ばしマスター", axes:"自覚 × 時間 × 放置 × 立ち直る",
+    lead:"やってないことは把握している。把握した上で、今日もやらない。罪悪感はとっくに置いてきた。",
+    items:["「ギリギリのほうが集中できる」を、もう何年も実証し続けている","締め切りを破ったときの言い訳を、先に用意してから先延ばす","焦らない。焦ったところで始めないことを、自分が一番知っている"],
+    save:"その図太さ、ストレスには一番強い生き方かもしれない。" },
+  ATPD:{ name:"罪悪感だけ抱えるサボり魔", axes:"自覚 × 時間 × 放置 × 引きずる",
+    lead:"やらなきゃいけないのはわかってる。わかってるのに動けない。そして動けない自分を、ただ責め続ける。",
+    items:["休んでいるのに、罪悪感のせいで全然休めていない","「やらなきゃ」と思いながらスマホを見て、見終わってもまだ「やらなきゃ」と思っている","何もしていない時間が、一番疲れる"],
+    save:"罪悪感を抱える分だけ、本当はちゃんとしたい人なんだと思う。" },
+};
+
+// ====== 状態 ======
+let answers = new Array(QUESTIONS.length).fill(null); // true=YES / false=NO
+let current = 0;
+
+// ====== 採点 ======
+function score() {
+  const tally = { U:0,A:0, M:0,T:0, I:0,P:0, B:0,D:0 };
+  QUESTIONS.forEach((q, i) => {
+    const side = answers[i] ? q.yes : q.no;
+    tally[side]++;
+  });
+  const code =
+    (tally.U >= tally.A ? "U":"A") +
+    (tally.M >= tally.T ? "M":"T") +
+    (tally.I >= tally.P ? "I":"P") +
+    (tally.B >= tally.D ? "B":"D");
+  return code;
+}
+
+// ====== 画面遷移 ======
+function show(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(screen).classList.add('active');
+}
+
+function startQuiz(){
+  answers = new Array(QUESTIONS.length).fill(null);
+  current = 0;
+  show('quiz');
+  renderQuestion();
+}
+
+function renderQuestion(){
+  const q = QUESTIONS[current];
+  document.getElementById('q-num').textContent = `Q${current+1}`;
+  document.getElementById('q-total').textContent = `/ ${QUESTIONS.length}`;
+  document.getElementById('q-text').textContent = q.text;
+  // progress
+  const pct = (current) / QUESTIONS.length * 100;
+  document.getElementById('progress-fill').style.width = pct + "%";
+  // back button visibility
+  document.getElementById('back-btn').style.visibility = current === 0 ? 'hidden' : 'visible';
+}
+
+function answer(isYes){
+  answers[current] = isYes;
+  if(current < QUESTIONS.length - 1){
+    current++;
+    renderQuestion();
+  } else {
+    document.getElementById('progress-fill').style.width = "100%";
+    setTimeout(showResult, 180);
+  }
+}
+
+function back(){
+  if(current > 0){ current--; renderQuestion(); }
+}
+
+function showResult(){
+  const code = score();
+  const t = TYPES[code];
+  const el = document.getElementById('result-body');
+  const itemsHtml = t.items.map(x=>`<li>${x}</li>`).join('');
+  el.innerHTML = `
+    <div class="result-icon">${window.DAME_ICONS[code]()}</div>
+    <div class="result-axes">${t.axes}</div>
+    <h2 class="result-name">${t.name}</h2>
+    <p class="result-lead">${t.lead}</p>
+    <ul class="result-items">${itemsHtml}</ul>
+    <div class="result-save"><span class="save-label">救いの一言</span>${t.save}</div>
+  `;
+  // share
+  const shareText = `私は【${t.name}】でした。\n${t.lead}\n#ダメ人間タイプ診断`;
+  const url = location.href.split('#')[0];
+  document.getElementById('share-x').onclick = ()=>{
+    const u = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
+    window.open(u,'_blank','noopener');
+  };
+  document.getElementById('copy-btn').onclick = ()=>{
+    navigator.clipboard?.writeText(shareText + "\n" + url).then(()=>{
+      const b=document.getElementById('copy-btn');
+      const o=b.textContent; b.textContent="コピーしました"; setTimeout(()=>b.textContent=o,1500);
+    });
+  };
+  show('result');
+  document.getElementById('result').scrollTop = 0;
+}
+
+// init
+window.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('start-btn').onclick = startQuiz;
+  document.getElementById('yes-btn').onclick = ()=>answer(true);
+  document.getElementById('no-btn').onclick = ()=>answer(false);
+  document.getElementById('back-btn').onclick = back;
+  document.getElementById('retry-btn').onclick = ()=>show('intro');
+});
+
+</script>
+</body>
+</html>
